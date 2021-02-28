@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using ExcelMerger.API;
+using Google.Apis.Drive.v3.Data;
+
 namespace ExcelMerger
 {
     class Program
@@ -14,17 +17,17 @@ namespace ExcelMerger
 
         private async Task Run()
         {
-            await RunDrive();
-            //await RunSheets();
+            var files = await RunDrive();
+            await RunSheets(files);
         }
 
-        private async Task RunDrive()
+        private async Task<IList<File>> RunDrive()
         {
             var driveApi = new GoogleDriveAPI();
-            await driveApi.ListFiles();
+            return await driveApi.ListFiles();
         }
 
-        private async Task RunSheets()
+        private async Task RunSheets(IList<File> files)
         {
             var sheetApi = new GoogleSheetsAPI();
             await sheetApi.ReadSheet();
