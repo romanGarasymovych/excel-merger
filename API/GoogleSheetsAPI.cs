@@ -24,7 +24,6 @@ namespace ExcelMerger.API
             IList<IList<Object>> values = response.Values;
             if (values != null && values.Count > 0)
             {
-                Console.WriteLine("Name, Major");
                 foreach (var row in values)
                 {
                     // Print columns A and E, which correspond to indices 0 and 4.
