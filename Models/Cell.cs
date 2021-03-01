@@ -3,10 +3,28 @@ namespace ExcelMerger.Models
 {
     public class Cell
     {
-        public Type DataType { get; set; }
+        public bool IsNumber { get; private set; }
 
-        public object Value { get; set; }
+        public dynamic Value { get; set; }
 
-        public object Address { get; set; }
+        public int Row { get; set; }
+
+        public int Column { get; set; }
+
+        public Cell(string value, int row, int column)
+        {
+            IsNumber = double.TryParse(value, out double numericValue);
+            if (IsNumber)
+            {
+                Value = numericValue;
+            }
+            else
+            {
+                Value = value;
+            }
+            Row = row;
+            Column = column;
+        }
+
     }
 }

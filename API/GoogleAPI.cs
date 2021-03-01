@@ -12,14 +12,14 @@ using Newtonsoft.Json.Linq;
 
 namespace ExcelMerger.API
 {
-    public abstract class GoogleAPI
+    public abstract class GoogleAPI : IDisposable
     {
         public const string ApplicationName = "Excel Merger";
 
         protected string[] GetScopes() => new string[]
         {
             SheetsService.Scope.SpreadsheetsReadonly,
-            DriveService.Scope.DriveReadonly
+            DriveService.Scope.Drive
         };
 
         protected BaseClientService.Initializer GetInitializer()
@@ -47,5 +47,7 @@ namespace ExcelMerger.API
             Console.WriteLine("Credential file saved to: " + credPath);
             return credential;
         }
+
+        public abstract void Dispose();
     }
 }

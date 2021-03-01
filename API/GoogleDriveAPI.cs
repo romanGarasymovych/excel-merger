@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using ExcelMerger.Exceptions;
 using Google.Apis.Drive.v3;
 using Google.Apis.Drive.v3.Data;
 using Google.Apis.Services;
@@ -9,34 +10,70 @@ namespace ExcelMerger.API
 {
     public class GoogleDriveAPI : GoogleAPI
     {
-        public async Task<IList<File>> ListFiles()
+        private DriveService driveService;
+
+        public async Task<IList<File>> ListFilesAsync()
         {
-            // Create the service.
-            var service = new DriveService(GetInitializer());
+            if (driveService == null)
+            {
+                driveService = new DriveService(GetInitializer());
+            }
 
             // Define parameters of request.
-            FilesResource.ListRequest listRequest = service.Files.List();
-            listRequest.Q = "'16zviFe8TDxWATb9aLHucZlLZUQ6nRybv' in parents";
-            listRequest.PageSize = 10;
+            FilesResource.ListRequest listRequest = driveService.Files.List();
+            string folderId = GetFolderInput();
+            listRequest.Q = $"'{folderId}' in parents";
+            listRequest.PageSize = 100;
             listRequest.Fields = "nextPageToken, files(id, name)";
 
             // List files.
             FileList fileList = await listRequest.ExecuteAsync();
             var files = fileList.Files;
-            Console.WriteLine("Files:");
-            if (files != null && files.Count > 0)
+            if (files == null || files.Count == 0)
             {
-                foreach (var file in files)
+                Console.WriteLine("No files found. Would you like to try again? (Y/N)");
+                string answer = Console.ReadLine();
+                return answer switch
                 {
-                    Console.WriteLine("{0} ({1})", file.Name, file.Id);
-                }
+                    "Y" => await ListFilesAsync(),
+                    _ => throw new CancelledException(),
+                };
             }
-            else
-            {
-                Console.WriteLine("No files found.");
-            }
-
+            Console.WriteLine($"Found {files.Count} files");
             return files;
+        }
+
+        public async Task MoveFileToFolder(string fileId, string folderId, string newFileName = null)
+        {
+            if (driveService == null)
+            {
+                driveService = new DriveService(GetInitializer());
+            }
+            var getFileRequest = driveService.Files.Get(fileId);
+            var file = await getFileRequest.ExecuteAsync();
+            if (!string.IsNullOrWhiteSpace(newFileName))
+            {
+                file.Name = newFileName;
+            }
+            var updateFileRequest = driveService.Files.Update(file, fileId);
+            updateFileRequest.AddParents = folderId;
+            await updateFileRequest.ExecuteAsync();
+        }
+
+        private string GetFolderInput()
+        {
+            Console.WriteLine("Enter folder Id (last part of the url when folder is open. Usually, a long sequence of numbers and letters):");
+            string input = Console.ReadLine();
+
+            return input;
+        }
+        public override void Dispose()
+        {
+            if (driveService != null)
+            {
+                driveService.Dispose();
+                driveService = null;
+            }
         }
     }
 }
