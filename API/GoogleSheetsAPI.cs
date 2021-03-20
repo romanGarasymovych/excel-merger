@@ -51,49 +51,49 @@ namespace ExcelMerger.API
                 sheetsService = new SheetsService(GetInitializer());
             }
 
-            Spreadsheet body = CreateSpreadsheetFromFileData(fileData);
+            Spreadsheet body = CreateEmptySpreadsheet();
             var createFileRequest = sheetsService.Spreadsheets.Create(body);
             var response = await createFileRequest.ExecuteAsync();
+            await InsertSheetData(response.SpreadsheetId, response.Sheets.First().Properties.SheetId, fileData);
             return response.SpreadsheetId;
         }
 
-        private Spreadsheet CreateSpreadsheetFromFileData(FileData fileData)
+        private async Task InsertSheetData(string spreadsheetId, int? sheetId, FileData fileData)
         {
-            Spreadsheet spreadSheet = new Spreadsheet();
-            spreadSheet.Sheets = new List<Sheet>();
-            spreadSheet.Sheets.Add(CreateSheetFromFileData(fileData));
-            return spreadSheet;
+            string range = "A1:Z";
+            var body = new ValueRange();
+            body.MajorDimension = "ROWS";
+            body.Range = range;
+            body.Values = CreateRows(fileData);
+            var request = sheetsService.Spreadsheets.Values.Append(body, spreadsheetId, range);
+            request.ValueInputOption = SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum.USERENTERED;
+            var response = await request.ExecuteAsync();
         }
 
-        private Sheet CreateSheetFromFileData(FileData fileData)
+        private IList<IList<object>> CreateRows(FileData fileData)
         {
-            Sheet sheet = new Sheet
+            var rows = new List<IList<object>>();
+            foreach (var row in fileData.Cells.GroupBy(c => c.Row))
             {
-                Data = new List<GridData>()
-            };
-            GridData data = new GridData
-            {
-                StartColumn = 0,
-                StartRow = 0
-            };
-
-            int maxRow = fileData.Cells.Max(c => c.Row);
-            int maxCol = fileData.Cells.Max(c => c.Column);
-            for (int rowIndex = 0; rowIndex <= maxRow; rowIndex++)
-            {
-                RowData row = new RowData
+                var rowData = new List<object>();
+                foreach (var cell in row.OrderBy(c => c.Column))
                 {
-                    Values = new List<CellData>()
-                };
-                foreach (var cell in fileData.Cells.Where(c => c.Row == rowIndex).OrderBy(c => c.Column))
-                {
-                    row.Values.Add(new CellData() { UserEnteredValue = GetExtendedValueFromCell(cell) });
+                    rowData.Add(cell.Value);
+                    //rowData.Add(GetExtendedValueFromCell(cell));
                 }
+                rows.Add(rowData);
             }
+            return rows;
+        }
 
-            sheet.Data.Add(data);
-
-            return sheet;
+        private Spreadsheet CreateEmptySpreadsheet()
+        {
+            Spreadsheet spreadSheet = new Spreadsheet
+            {
+                Sheets = new List<Sheet>() { new Sheet { Properties = new SheetProperties { Title = "Merged" } } },
+                Properties = new SpreadsheetProperties { Title = "Merged Sheet" }
+            };
+            return spreadSheet;
         }
 
         private ExtendedValue GetExtendedValueFromCell(Cell cell)

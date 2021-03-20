@@ -9,7 +9,10 @@ namespace ExcelMerger.Models
 
         public int Row { get; set; }
 
+
         public int Column { get; set; }
+
+        public string AlphabeticalColumn => ((char)Column + 65).ToString();
 
         public Cell(string value, int row, int column)
         {

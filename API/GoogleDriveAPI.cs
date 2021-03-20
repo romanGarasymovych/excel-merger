@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
 using ExcelMerger.Exceptions;
 using Google.Apis.Drive.v3;
 using Google.Apis.Drive.v3.Data;
@@ -50,14 +51,17 @@ namespace ExcelMerger.API
                 driveService = new DriveService(GetInitializer());
             }
             var getFileRequest = driveService.Files.Get(fileId);
+            getFileRequest.Fields = "parents";
             var file = await getFileRequest.ExecuteAsync();
-            if (!string.IsNullOrWhiteSpace(newFileName))
-            {
-                file.Name = newFileName;
-            }
+            //if (!string.IsNullOrWhiteSpace(newFileName))
+            //{
+            //    file.Name = newFileName;
+            //}
             var updateFileRequest = driveService.Files.Update(file, fileId);
             updateFileRequest.AddParents = folderId;
-            await updateFileRequest.ExecuteAsync();
+            updateFileRequest.RemoveParents = file.Parents.First();
+            updateFileRequest.Fields = "addParents, removeParents";
+            var movedFile = await updateFileRequest.ExecuteAsync();
         }
 
         private string GetFolderInput()
