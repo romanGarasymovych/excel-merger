@@ -90,9 +90,24 @@ namespace ExcelMerger
                 }
                 else
                 {
-                    foreach (var value in fileDataList.SelectMany(fd => fd.Cells).Where(c => c.Row == cell.Row && c.Column == cell.Column).Select(c => c.Value).Cast<double>())
+                    foreach (var value in fileDataList.SelectMany(fd => fd.Cells).Where(c => c.Row == cell.Row && c.Column == cell.Column).Select(c => c.Value))
                     {
-                        cell.Value += value;
+                        try
+                        {
+                            if (double.TryParse(value as string, out double val))
+                            {
+                                cell.Value += val;
+
+                            }
+                            else
+                            {
+                                cell.Value = "ERROR";
+                            }
+                        }
+                        catch (InvalidCastException ex)
+                        {
+                            cell.Value = "ERROR";
+                        }
                     }
                 }
                 mergedFileData.Cells.Add(cell);
